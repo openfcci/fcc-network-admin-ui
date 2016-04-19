@@ -106,10 +106,10 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   		switch_to_blog( $item->blog_id );
   		if( $jp->is_active() ) {
   		    restore_current_blog();
-  		    return '<p>Disconnected</p>';
+  		    return '<p>Connected</p>';
   		}
   		restore_current_blog();
-  		return '<p>Connected</p>';
+  		return '<p>Disconnected</p>';
   	}
 
     //Get Jetpack Email
@@ -129,8 +129,12 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
       //Set Last Post Date
       set_lastupdated_to_lastpostdate($item->blog_id);
 
-      // Get last post date
-      $last_post = date('F d, Y', strtotime($item->last_updated));
+      if( $item->last_updated != '0000-00-00 00:00:00'){
+        // Get last post date
+        $last_post = date('F d, Y', strtotime($item->last_updated));
+      }else{
+        $last_post = '';
+      }
 
       return $last_post;
     }
@@ -201,7 +205,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
     ?>
     <script>
     jQuery(document).ready(function($) {
-          $('.fcc-filter-date').live('change', function(){
+          $('.fcc-filter-date').on('change', function(){
              var dateFilter = $(this).val();
              if( dateFilter != '' ){
                 document.location.href = 'admin.php?page=fcc-network-admin-ui'+dateFilter;
@@ -219,12 +223,12 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   	global $wpdb;
 
     switch_to_blog( $wpdb_blogid );
-    if(get_lastpostdate( 'gmt' )){
-      $lastpostdate = get_lastpostdate( 'gmt' );
-    	$updated_array = array('last_updated' => $lastpostdate );
-    	$wpdb->update( $wpdb->blogs, $updated_array, array('blog_id' => $wpdb_blogid) );
-    	refresh_blog_details($wpdb_blogid);
-    }
+
+    $lastpostdate = get_lastpostdate( 'blog' );
+  	$updated_array = array('last_updated' => $lastpostdate );
+    //Update last_updated column in blogs table
+  	$wpdb->update( $wpdb->blogs, $updated_array, array('blog_id' => $wpdb_blogid) );
+    refresh_blog_details($wpdb_blogid);
 
     restore_current_blog();
 

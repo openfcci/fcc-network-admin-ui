@@ -59,13 +59,20 @@ function fcc_create_network_sites_menu(){
 function fcc_network_sites_page(){
 
    if (is_multisite() && current_user_can('manage_network'))  {
+		 //If Jetpack isn't installed, display a message.
+		 if(is_plugin_active('jetpack/jetpack.php')){
 
-		 require_once( 'includes/fcc-network-table.php' );
-		 $myListTable = new FCC_Network_Sites_List_Table();
-		 echo '<div class="wrap"><h2>' . __( 'Sites', 'jetpack' ) . '</h2>';
-		 echo '<form method="post">';
-		 $myListTable->prepare_items();
-		 $myListTable->display();
-		 echo '</form></div>';
+			 require_once( 'includes/fcc-network-table.php' );
+			 $myListTable = new FCC_Network_Sites_List_Table();
+
+			 echo '<div class="wrap"><h2>' . __( 'Sites', 'jetpack' ) . '</h2>';
+			 echo '<form method="post">';
+			 $myListTable->prepare_items();
+			 $myListTable->display();
+			 echo '</form></div>';
+
+		 }else{
+			 echo '<p>Jetpack must be installed and activated to use this plugin.';
+		 }
    }
 }
