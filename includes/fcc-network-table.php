@@ -9,7 +9,6 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   	public function get_columns() {
   		// site name, status, username connected under
   		$columns = array(
-  			'cb'        => '<input type="checkbox" />',
   			'blogname' => __( 'Site Name', 'jetpack'  ),
   			'blog_path' => __( 'Path', 'jetpack' ),
   			'connected' => __( 'Jetpack Connected', 'jetpack' ),
@@ -26,22 +25,17 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   		// Deal with bulk actions if any were requested by the user
   		$this->process_bulk_action();
 
-  		// Get sites
-  		$sites = $jpms->wp_get_sites( array(
-  			'exclude_blogs' => array( 1 ),
-  			'archived'      => false,
-  		) );
-
       //If has date-filter variable in url, then filter by date, else show all sites.
       if( $_GET['date-filter']){
-            // $query = $wpdb->get_results('select * from av_blogs order by blog_id asc', ARRAY_A);
-            $date = strtotime($_GET['cat-filter']);
+
             // Setup pagination
+            global $wpdb;
+            $date = strtotime($_GET['date-filter']);
+            $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE YEAR(last_updated) = " . date('Y', $date) . " AND MONTH(last_updated) = " . date('m', $date) );
         		$per_page = 25;
         		$current_page = $this->get_pagenum();
         		$total_items = count( $sites );
-        		$sites = $wpdb->get_results('select * from av_blogs order by blog_id asc', ARRAY_A);
-
+            $sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
         		$this->set_pagination_args( array(
         			'total_items' => $total_items,
         			'per_page'    => $per_page
@@ -52,8 +46,13 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
         		$sortable = array();
         		$this->_column_headers = array( $columns, $hidden, $sortable );
         		$this->items = $sites;
-        }else{
 
+        }else{
+          // Get sites
+          $sites = $jpms->wp_get_sites( array(
+            'exclude_blogs' => array( 1 ),
+            'archived'      => false,
+          ) );
       		// Setup pagination
       		$per_page = 25;
       		$current_page = $this->get_pagenum();
@@ -106,25 +105,14 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
   		switch_to_blog( $item->blog_id );
   		if( $jp->is_active() ) {
-  		   // Build url for disconnecting
-  		    $url = $jpms->get_url( array(
-  			'name'	    => 'subsitedisconnect',
-  			'site_id'   => $item->blog_id,
-
-  		    ) );
   		    restore_current_blog();
-  		    return '<a href="' . $url . '">Disconnect</a>';
+  		    return '<p>Disconnected</p>';
   		}
   		restore_current_blog();
-
-  		// Build URL for connecting
-  		$url = $jpms->get_url( array(
-  		    'name'	=> 'subsiteregister',
-  		    'site_id'	=> $item->blog_id,
-  		) );
-  		return '<a href="' . $url . '">Connect</a>';
+  		return '<p>Connected</p>';
   	}
 
+    //Get Jetpack Email
     public function column_jetpackemail( $item ) {
 
       switch_to_blog( $item->blog_id );
@@ -137,55 +125,15 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
     }
 
     public function column_lastpost( $item ) {
-      // http://jpms/wp-admin/network/site-info.php?id=1
-      switch_to_blog( $item->blog_id );
-      if(get_lastpostdate('gmt')){
-        $last_post = date('F d, Y', strtotime(get_lastpostdate('gmt')));
-      }else{
-        $last_post = '';
-      }
-      restore_current_blog();
+
+      //Set Last Post Date
+      set_lastupdated_to_lastpostdate($item->blog_id);
+
+      // Get last post date
+      $last_post = date('F d, Y', strtotime($item->last_updated));
 
       return $last_post;
     }
-
-  	public function get_bulk_actions() {
-  	    $actions = array(
-  		'connect'	=> 'Connect',
-  		'disconnect'	=> 'Disconnect'
-  	    );
-
-  	    return $actions;
-  	}
-
-  	function column_cb($item) {
-          	return sprintf(
-              		'<input type="checkbox" name="bulk[]" value="%s" />', $item->blog_id
-          	);
-      	}
-
-  	public function process_bulk_action() {
-  		if( !isset( $_POST['bulk'] ) || empty ( $_POST['bulk'] ) )
-  			return; // Thou shall not pass! There is nothing to do
-
-
-  		$jpms = Jetpack_Network::init();
-
-  		$action = $this->current_action();
-  		switch ( $action ) {
-
-              		case 'connect':
-                  		foreach( $_POST['bulk'] as $k => $site ) {
-  							$jpms->do_subsiteregister( $site );
-  						}
-  				break;
-              		case 'disconnect':
-                  		foreach( $_POST['bulk'] as $k => $site ) {
-  							$jpms->do_subsitedisconnect( $site );
-  						}
-  				break;
-  		}
-  	}
 
 
     function extra_tablenav( $which ) {
@@ -195,38 +143,33 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
             ?>
             <div class="alignleft actions bulkactions">
             <?php
-            $sites = $wpdb->get_results('select * from av_blogs order by blog_id asc', ARRAY_A);
+            $sites = $wpdb->get_results('select * from av_blogs order by last_updated desc', ARRAY_A);
             if( $sites ){
                 ?>
                 <select name="date-filter" class="fcc-filter-date">
-                    <option value="">Filter by Last Post Date</option>
-                      <?php
+                  <?php
+                    //If has date-filter variable in url, then filter by date, else show all sites.
+                    if( $_GET['date-filter']){
+                      ?>
+                      <option value=""><?php echo 'Last Posts: ' . $_GET['date-filter']; ?></option>
+                    <?php }else{
+                      ?>
+                      <option value="">Filter by Last Post Date</option>
+                    <?php
+                     }
                       //New Date array
                       $date_array = array();
                       foreach( $sites as $site ){
-
-                        switch_to_blog( $site['blog_id'] );
-
-                        //If blog has a last post date
-                        if(get_lastpostdate('gmt')){
+                        //If blog is not null
+                        if($site['last_updated'] != '0000-00-00 00:00:00'){
                           //Get date by Month Year
-                          $last_date = date('F Y', strtotime(get_lastpostdate('gmt')));
-                          restore_current_blog();
-
+                          $last_date = date('F Y', strtotime($site['last_updated']));
                           //Add date object to date_array if it does not exist
                           if(!in_array($last_date, $date_array)){
                             array_push($date_array, $last_date);
                           }
                         }
                       }
-
-                      //Sort Dates Function
-                      function sortDate( $a, $b ) {
-                          return strtotime($b) - strtotime($a);
-                      }
-
-                      //Sort the date array
-                      usort($date_array, 'sortDate');
 
                       foreach($date_array as $thedate){
                         if($thedate){
@@ -270,3 +213,19 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
   }
   add_action('admin_footer', 'dropdown_script');
+
+  //Function to set the last updated to the last post date in the sites table
+  function set_lastupdated_to_lastpostdate( $wpdb_blogid ) {
+  	global $wpdb;
+
+    switch_to_blog( $wpdb_blogid );
+    if(get_lastpostdate( 'gmt' )){
+      $lastpostdate = get_lastpostdate( 'gmt' );
+    	$updated_array = array('last_updated' => $lastpostdate );
+    	$wpdb->update( $wpdb->blogs, $updated_array, array('blog_id' => $wpdb_blogid) );
+    	refresh_blog_details($wpdb_blogid);
+    }
+
+    restore_current_blog();
+
+  }
