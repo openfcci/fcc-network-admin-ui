@@ -31,8 +31,10 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
             // Setup pagination
             global $wpdb;
             //$date = strtotime($_GET['date-filter']);
+            // >= posted AFTER (active since) this date
+            // <= posted BEFORE (inactive since) this date
             $date = fcc_date_diff($_GET['date-filter']);
-            $sites = $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE DATE(last_updated) > DATE_SUB(curdate(), INTERVAL $date DAY)" );
+            $sites = $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE DATE(last_updated) <= DATE_SUB(curdate(), INTERVAL $date DAY)" );
         		$per_page = 25;
         		$current_page = $this->get_pagenum();
         		$total_items = count( $sites );
@@ -156,7 +158,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
                     //If has date-filter variable in url, then filter by date, else show all sites.
                     if( $_GET['date-filter']){
                       ?>
-                      <option value=""><?php echo 'Last Posts: ' . $_GET['date-filter']; ?></option>
+                      <option value=""><?php echo 'Inactive Since: ' . $_GET['date-filter']; ?></option>
                     <?php }else{
                       ?>
                       <option value="">Filter by Last Post Date</option>
@@ -241,8 +243,8 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   function date_to_end_of_month( $date ){
   	$datestr = $date;
   	$date = new DateTime($datestr);
-  	$date->modify('+1 month');
-  	$date->modify('-1 second');
+  	//$date->modify('+1 month');
+  	//$date->modify('-1 second');
   	$date = $date->format('Y-m-d H:i:s');
 
   	return $date;
