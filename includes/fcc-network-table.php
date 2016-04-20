@@ -30,8 +30,9 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
             // Setup pagination
             global $wpdb;
-            $date = strtotime($_GET['date-filter']);
-            $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE YEAR(last_updated) = " . date('Y', $date) . " AND MONTH(last_updated) = " . date('m', $date) );
+            //$date = strtotime($_GET['date-filter']);
+            $date = fcc_date_diff($_GET['date-filter']);
+            $sites = $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE DATE(last_updated) > DATE_SUB(curdate(), INTERVAL $date DAY)" );
         		$per_page = 25;
         		$current_page = $this->get_pagenum();
         		$total_items = count( $sites );
@@ -232,4 +233,27 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
     restore_current_blog();
 
+  }
+
+  /**
+   * Returns end-of-month date of provided date
+   */
+  function date_to_end_of_month( $date ){
+  	$datestr = $date;
+  	$date = new DateTime($datestr);
+  	$date->modify('+1 month');
+  	$date->modify('-1 second');
+  	$date = $date->format('Y-m-d H:i:s');
+
+  	return $date;
+  }
+
+  /**
+   * Returns Difference in days between current and provided date.
+   */
+  function fcc_date_diff( $date ){
+  	$date = date_to_end_of_month($date);
+  	$days = date_diff( date_create(date()), date_create($date))->days;
+
+  	return $days;
   }
