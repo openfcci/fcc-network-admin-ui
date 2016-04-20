@@ -190,14 +190,32 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
                         }
                     ?>
                 </select>
-                <select name="activity-filter" class="fcc-filter-activity">
+                <select name="jetpack-filter" class="fcc-filter-jetpack">
+                  <option value="">Filter by Jetpack Status</option>
+                  <option value="<?php echo '&jetpack-filter=' ?>Connected">Jetpack Connected</option>
+                  <option value="<?php echo '&jetpack-filter=' ?>Connected">Jetpack Disconnected</option>
+                  <option value="<?php echo '&jetpack-filter=' ?>Connected">Incorrect Jetpack Master User</option>
+                </select>
+                <select name="inactivity-filter" class="fcc-filter-activity">
                   <option value="">Filter by Inactivity</option>
-                  <option value="<?php echo '&activity-filter=' ?>30">30 Days Inactive</option>
-                  <option value="<?php echo '&activity-filter=' ?>60">2 Months Inactive</option>
-                  <option value="<?php echo '&activity-filter=' ?>90">3 Months Inactive</option>
-                  <option value="<?php echo '&activity-filter=' ?>180">6 Months Inactive</option>
-                  <option value="<?php echo '&activity-filter=' ?>365">1 Year Inactive</option>
-                  <option value="<?php echo '&activity-filter=' ?>730">2 Years Inactive</option>
+                  <option value="<?php echo '&inactivity-filter=' ?>30">30 Days Inactive</option>
+                  <option value="<?php echo '&inactivity-filter=' ?>60">2 Months Inactive</option>
+                  <option value="<?php echo '&inactivity-filter=' ?>90">3 Months Inactive</option>
+                  <option value="<?php echo '&inactivity-filter=' ?>180">6 Months Inactive</option>
+                  <option value="<?php echo '&inactivity-filter=' ?>365">1 Year Inactive</option>
+                  <option value="<?php echo '&inactivity-filter=' ?>730">2 Years Inactive</option>
+                </select>
+                <select name="activity-filter" class="fcc-filter-activity">
+                  <option value="">Filter by Activity</option>
+                  <option value="<?php echo '&activity-filter=' ?>30">Active within: 30 Days</option>
+                  <option value="<?php echo '&activity-filter=' ?>60">Active within: 2 Months</option>
+                  <option value="<?php echo '&activity-filter=' ?>90">Active within: 3 Months</option>
+                  <option value="<?php echo '&activity-filter=' ?>180">Active within: 6 Months</option>
+                  <option value="<?php echo '&activity-filter=' ?>365">Active within: 1 Year</option>
+                  <option value="<?php echo '&activity-filter=' ?>730">Active within: 2 Years</option>
+                </select>
+                <select name="user-filter" class="fcc-filter-user">
+                  <option value="">Filter by Ownerless Sites</option>
                 </select>
                 <?php
             }
