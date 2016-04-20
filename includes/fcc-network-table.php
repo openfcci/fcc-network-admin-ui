@@ -9,15 +9,25 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   	public function get_columns() {
   		// site name, status, username connected under
   		$columns = array(
-  			'blogname' => __( 'Site Name', 'jetpack'  ),
-  			'blog_path' => __( 'Path', 'jetpack' ),
-  			'connected' => __( 'Jetpack Connected', 'jetpack' ),
-        'jetpackemail' => __('Jetpack Master User E-mail', 'jetpack'),
-        'lastpost' => __( 'Last Post Date', 'jetpack' ),
+  			'blogname' => __( 'Site Name'  ),
+  			'blog_path' => __( 'Path' ),
+  			'connected' => __( 'Jetpack Connected' ),
+        'jetpackemail' => __('Jetpack Master User E-mail'),
+        'lastpost' => __( 'Last Post Date' ),
   		);
 
   		return $columns;
   	}
+
+    public function get_sortable_columns(){
+      $sortable_columns = array(
+        'lastpost' => array(
+          'lastpost', false
+        )
+  		);
+
+  		return $sortable_columns;
+    }
 
   	public function prepare_items() {
   		$jpms = Jetpack_Network::init();
@@ -28,51 +38,77 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
       //If has date-filter variable in url, then filter by date, else show all sites.
       if( $_GET['date-filter']){
 
-            // Setup pagination
-            global $wpdb;
-            $date = strtotime($_GET['date-filter']);
-            $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE YEAR(last_updated) = " . date('Y', $date) . " AND MONTH(last_updated) = " . date('m', $date) );
-        		$per_page = 25;
-        		$current_page = $this->get_pagenum();
-        		$total_items = count( $sites );
-            $sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
-        		$this->set_pagination_args( array(
-        			'total_items' => $total_items,
-        			'per_page'    => $per_page
-        		) );
-
-        		$columns = $this->get_columns();
-        		$hidden = array();
-        		$sortable = array();
-        		$this->_column_headers = array( $columns, $hidden, $sortable );
-        		$this->items = $sites;
-
+        global $wpdb;
+        $date = strtotime($_GET['date-filter']);
+        //If last post column is sortable, sort the order, else dont
+        if($_GET['orderby'] == 'lastpost' && $_GET['order']){
+          $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE YEAR(last_updated) = " . date('Y', $date) . " AND MONTH(last_updated) = " . date('m', $date) ." ORDER BY last_updated " . $_GET['order']);
         }else{
-          // Get sites
-          $sites = $jpms->wp_get_sites( array(
-            'exclude_blogs' => array( 1 ),
-            'archived'      => false,
-          ) );
-      		// Setup pagination
-      		$per_page = 25;
-      		$current_page = $this->get_pagenum();
-      		$total_items = count( $sites );
-      		$sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
-
-      		$this->set_pagination_args( array(
-      			'total_items' => $total_items,
-      			'per_page'    => $per_page
-      		) );
-
-      		$columns = $this->get_columns();
-      		$hidden = array();
-      		$sortable = array();
-      		$this->_column_headers = array( $columns, $hidden, $sortable );
-      		$this->items = $sites;
+          $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE YEAR(last_updated) = " . date('Y', $date) . " AND MONTH(last_updated) = " . date('m', $date) );
         }
+        $per_page = 25;
+        $current_page = $this->get_pagenum();
+        $total_items = count( $sites );
+        $sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
+        $this->set_pagination_args( array(
+          'total_items' => $total_items,
+          'per_page'    => $per_page
+        ) );
+
+        $columns = $this->get_columns();
+        $sortable = $this->get_sortable_columns();
+        $hidden = array();
+        $this->_column_headers = array( $columns, $hidden, $sortable );
+
+        $this->items = $sites;
+
+      }else{
+        global $wpdb;
+        // Get sites
+        //If last post column is sortable, sort the order, else dont
+        if($_GET['orderby'] == 'lastpost' && $_GET['order']){
+          $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs ORDER BY last_updated " . $_GET['order']);
+        }else{
+          $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs");
+        }
+
+    		// Setup pagination
+    		$per_page = 25;
+    		$current_page = $this->get_pagenum();
+    		$total_items = count( $sites );
+    		$sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
+
+        $columns = $this->get_columns();
+        $hidden = array();
+        $sortable = $this->get_sortable_columns();
+
+    		$this->set_pagination_args( array(
+    			'total_items' => $total_items,
+    			'per_page'    => $per_page
+    		) );
+
+    		$this->_column_headers = array( $columns, $hidden, $sortable );
+    		$this->items = $sites;
+      }
 
 
   	}
+
+    public function single_row($item){
+      if($item->archived && !$item->spam){
+        echo '<tr class="site-archived">';
+          $this->single_row_columns( $item );
+        echo '</tr>';
+      }else if($item->spam && $item->archived || $item->spam){
+        echo '<tr class="site-spammed">';
+          $this->single_row_columns( $item );
+        echo '</tr>';
+      }else{
+        echo '<tr>';
+          $this->single_row_columns( $item );
+        echo '</tr>';
+      }
+    }
 
   	public function column_blogname( $item ) {
   		// http://jpms/wp-admin/network/site-info.php?id=1
@@ -86,18 +122,24 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   			'view'		=> '<a href="' . get_site_url( $item->blog_id, '', 'admin' ) . '">View</a>',
   			'jetpack-' . $item->blog_id	=> '<a href="' . $jp_url . '">Jetpack</a>',
   		);
-
+        if($item->archived && !$item->spam){
+          return sprintf('%1$s %2$s', '<strong>' . get_blog_option( $item->blog_id, 'blogname' ) . ' - Archived</strong>', $this->row_actions($actions) );
+        }else if($item->spam && $item->archived){
+          return sprintf('%1$s %2$s', '<strong>' . get_blog_option( $item->blog_id, 'blogname' ) . ' - Archived, Spam</strong>', $this->row_actions($actions) );
+        }else if($item->spam){
+          return sprintf('%1$s %2$s', '<strong>' . get_blog_option( $item->blog_id, 'blogname' ) . ' - Spam</strong>', $this->row_actions($actions) );
+        }
     		return sprintf('%1$s %2$s', '<strong>' . get_blog_option( $item->blog_id, 'blogname' ) . '</strong>', $this->row_actions($actions) );
   	}
 
   	public function column_blog_path( $item ) {
   		return
-                           '<a href="' .
-                           get_site_url( $item->blog_id, '', 'admin' ) .
-                           '">' .
-                           str_replace( array( 'http://', 'https://' ), '', get_site_url( $item->blog_id, '', 'admin' ) ) .
-                           '</a>';
-  	}
+           '<a href="' .
+           get_site_url( $item->blog_id, '', 'admin' ) .
+           '">' .
+           str_replace( array( 'http://', 'https://' ), '', get_site_url( $item->blog_id, '', 'admin' ) ) .
+           '</a>';
+    }
 
   	public function column_connected( $item ) {
   		$jpms = Jetpack_Network::init();
@@ -138,6 +180,8 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
       return $last_post;
     }
+
+
 
 
     function extra_tablenav( $which ) {
@@ -195,6 +239,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
         }
         if ( $which == "bottom" ){
             //The code that goes after the table is there
+
 
         }
     }
