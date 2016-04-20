@@ -190,6 +190,15 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
                         }
                     ?>
                 </select>
+                <select name="activity-filter" class="fcc-filter-activity">
+                  <option value="">Filter by Inactivity</option>
+                  <option value="<?php echo '&activity-filter=' ?>30">30 Days Inactive</option>
+                  <option value="<?php echo '&activity-filter=' ?>60">2 Months Inactive</option>
+                  <option value="<?php echo '&activity-filter=' ?>90">3 Months Inactive</option>
+                  <option value="<?php echo '&activity-filter=' ?>180">6 Months Inactive</option>
+                  <option value="<?php echo '&activity-filter=' ?>365">1 Year Inactive</option>
+                  <option value="<?php echo '&activity-filter=' ?>730">2 Years Inactive</option>
+                </select>
                 <?php
             }
             ?>
@@ -214,6 +223,12 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
                 document.location.href = 'admin.php?page=fcc-network-admin-ui'+dateFilter;
              }
              });
+           $('.fcc-filter-activity').on('change', function(){
+              var dateFilter = $(this).val();
+              if( dateFilter != '' ){
+                 document.location.href = 'admin.php?page=fcc-network-admin-ui'+dateFilter;
+              }
+              });
            });
        </script>;
     <?php
