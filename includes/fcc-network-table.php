@@ -151,7 +151,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   		    return '<p>Connected</p>';
   		}
   		restore_current_blog();
-  		return '<p>Disconnected</p>';
+  		return '<p><span style="color:rgb(213, 78, 33)">Disconnected</span></p>';
   	}
 
     //Get Jetpack Email
