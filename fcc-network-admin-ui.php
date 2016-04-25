@@ -76,3 +76,28 @@ function fcc_network_sites_page(){
 		 }
    }
 }
+
+/*--------------------------------------------------------------
+# JSON FEED
+--------------------------------------------------------------*/
+
+/**
+ * Add 'sites' JSON Feed
+ *
+ * @since 1.16.04.24
+ * @version 1.16.04.24
+ */
+function fcc_sites_do_json_feed(){
+	add_feed('sites', 'add_sites_feed');
+}
+add_action('init', 'fcc_sites_do_json_feed');
+
+/**
+ * Load JSON Feed Template
+ *
+ * @since 1.16.04.24
+ * @version 1.16.04.24
+ */
+function add_sites_feed(){
+	load_template( plugin_dir_path( __FILE__ ) . 'template/feed-json.php' );
+}
