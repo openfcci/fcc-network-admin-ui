@@ -15,7 +15,7 @@ $charset  = get_option('charset');
 $json = array();
 
 	//$blogthemeinfo = 'id,name,url,theme,last updated,user count,user id,user email,admin email' . '<br>';
-	$blogs = $wpdb->get_col("SELECT blog_id FROM $wpdb->blogs");
+	/*$blogs = $wpdb->get_col("SELECT blog_id FROM $wpdb->blogs");
 	if (!empty($blogs)) {
 	    foreach ($blogs as $blog) {
 	        switch_to_blog($blog);
@@ -78,10 +78,12 @@ $json = array();
 	        restore_current_blog();
 					$json[] = $site;
 	    }
-	}
+	}*/
+	$json = get_site_option( 'sites-json' );
 
 if ( $json ) {
 
+	//update_site_option( 'sites-json', $json );
 	$json = json_encode($json, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
 	nocache_headers();
