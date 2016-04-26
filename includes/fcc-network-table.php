@@ -102,7 +102,19 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
           $jp = Jetpack::init();
           foreach ($sites as $index=>$site){
             switch_to_blog( $site->blog_id );
-            if( Jetpack::get_connected_user_data( Jetpack_Options::get_option( 'master_user' )->ID )[email] != "fccd-support@forumcomm.com" ) {
+
+            /* Jetpack: Get Master User Data for Current Blog */
+            $master = Jetpack_Options::get_option( 'master_user' );
+            if ( ! get_user_by( 'id', $master ) ) {
+            	return false;
+            }
+
+            $master_user           = get_userdata( $master );
+            $master_user_data_com  = Jetpack::get_connected_user_data( $master_user->ID );
+
+            $jp_connected_email = $master_user_data_com['email'];
+
+            if( $jp_connected_email != "fccd-support@forumcomm.com" ) {
                 unset($sites[$index]);
                 restore_current_blog();
             }else{
