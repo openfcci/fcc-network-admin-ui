@@ -62,6 +62,66 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
         $this->items = $sites;
 
+      }else if($_GET['jetpack-filter']){
+        //If Jetpack filter is selected
+        global $wpdb;
+        $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs");
+        print_r($sites);
+
+        $jpms = Jetpack_Network::init();
+        $jp = Jetpack::init();
+
+        //If Jetpack Filter is Jetpack Connected, disconnected, or email.
+        if($_GET['jetpack-filter'] == "jetpack-connected"){
+          foreach ($sites as $index=>$site){
+            switch_to_blog( $site->blog_id );
+            if( !$jp->is_active() ) {
+                unset($sites[$key]);
+                restore_current_blog();
+            }else{
+              restore_current_blog();
+            }
+          };
+        }else if($_GET['jetpack-filter'] == "jetpack-disconnected"){
+          foreach ($sites as $index=>$site){
+            switch_to_blog( $site->blog_id );
+            if( $jp->is_active() ) {
+                unset($sites[$key]);
+                restore_current_blog();
+            }else{
+              restore_current_blog();
+            }
+          };
+        }else if($_GET['jetpack-filter'] == "jetpack-incorrect"){
+          foreach ($sites as $index=>$site){
+            switch_to_blog( $site->blog_id );
+            if( Jetpack::get_connected_user_data( Jetpack_Options::get_option( 'master_user' )->ID )[email] != "fccd-support@forumcomm.com" ) {
+                unset($sites[$key]);
+                restore_current_blog();
+            }else{
+              restore_current_blog();
+            }
+          }
+        }
+
+        // Setup pagination
+        $per_page = 25;
+        $current_page = $this->get_pagenum();
+        $total_items = count( $sites );
+        $sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
+
+        $columns = $this->get_columns();
+        $hidden = array();
+        $sortable = $this->get_sortable_columns();
+
+        $this->set_pagination_args( array(
+          'total_items' => $total_items,
+          'per_page'    => $per_page
+        ) );
+
+        $this->_column_headers = array( $columns, $hidden, $sortable );
+        $this->items = $sites;
+
       }else{
         global $wpdb;
         // Get sites
@@ -186,55 +246,64 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
     function extra_tablenav( $which ) {
         global $wpdb, $testiURL, $tablename, $tablet;
-        $move_on_url = '&date-filter=';
+        $date_url = '&date-filter=';
         if ( $which == "top" ){
             ?>
             <div class="alignleft actions bulkactions">
-            <?php
-            $sites = $wpdb->get_results('select * from av_blogs order by last_updated desc', ARRAY_A);
-            if( $sites ){
-                ?>
-                <select name="date-filter" class="fcc-filter-date">
-                  <?php
-                    //If has date-filter variable in url, then filter by date, else show all sites.
-                    if( $_GET['date-filter']){
-                      ?>
-                      <option value=""><?php echo 'Last Posts: ' . $_GET['date-filter']; ?></option>
-                    <?php }else{
-                      ?>
-                      <option value="">Filter by Last Post Date</option>
+
+              <?php
+              $sites = $wpdb->get_results('select * from av_blogs order by last_updated desc', ARRAY_A);
+              if( $sites ){
+                  ?>
+                  <select name="date-filter" class="fcc-filter-date">
                     <?php
-                     }
-                      //New Date array
-                      $date_array = array();
-                      foreach( $sites as $site ){
-                        //If blog is not null
-                        if($site['last_updated'] != '0000-00-00 00:00:00'){
-                          //Get date by Month Year
-                          $last_date = date('F Y', strtotime($site['last_updated']));
-                          //Add date object to date_array if it does not exist
-                          if(!in_array($last_date, $date_array)){
-                            array_push($date_array, $last_date);
+                      //If has date-filter variable in url, then filter by date, else show all sites.
+                      if( $_GET['date-filter']){
+                        ?>
+                        <option value=""><?php echo 'Last Posts: ' . $_GET['date-filter']; ?></option>
+                      <?php }else{
+                        ?>
+                        <option value="">Filter by Last Post Date</option>
+                      <?php
+                       }
+                        //New Date array
+                        $date_array = array();
+                        foreach( $sites as $site ){
+                          //If blog is not null
+                          if($site['last_updated'] != '0000-00-00 00:00:00'){
+                            //Get date by Month Year
+                            $last_date = date('F Y', strtotime($site['last_updated']));
+                            //Add date object to date_array if it does not exist
+                            if(!in_array($last_date, $date_array)){
+                              array_push($date_array, $last_date);
+                            }
                           }
                         }
-                      }
 
-                      foreach($date_array as $thedate){
-                        if($thedate){
-                          $last_post = $thedate;
-                        }
+                        foreach($date_array as $thedate){
+                          if($thedate){
+                            $last_post = $thedate;
+                          }
 
-                    ?>
-                        <option value="<?php echo $move_on_url . $last_post; ?>" <?php echo $selected; ?>><?php echo $last_post; ?></option>
-                    <?php
+                      ?>
+                          <option value="<?php echo $date_url . $last_post; ?>" <?php echo $selected; ?>><?php echo $last_post; ?></option>
+                      <?php
 
-                        }
-                    ?>
-                </select>
-                <?php
-            }
-            ?>
-            </div>
+                          }
+                      ?>
+                  </select>
+                  <?php
+              }
+              ?>
+                  <!-- Jetpack Filter -->
+                  <select name="jetpack-filter" class="fcc-filter-jetpack">
+
+                        <option value="&jetpack-filter=jetpack-all">Jetpack: Show All</option>
+                        <option value="&jetpack-filter=jetpack-connected">Jetpack Connected</option>
+                        <option value="&jetpack-filter=jetpack-disconnected">Jetpack Disconnected</option>
+                        <option value="&jetpack-filter=jetpack-incorrect">Incorrect Jetpack Master User</option>
+                  </select>
+              </div>
             <?php
         }
         if ( $which == "bottom" ){
@@ -250,13 +319,22 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
     ?>
     <script>
     jQuery(document).ready(function($) {
+          //Filter Date
           $('.fcc-filter-date').on('change', function(){
              var dateFilter = $(this).val();
              if( dateFilter != '' ){
                 document.location.href = 'admin.php?page=fcc-network-admin-ui'+dateFilter;
              }
              });
-           });
+
+           //Filter Jetpack
+           $('.fcc-filter-jetpack').on('change', function(){
+              var jetpackFilter = $(this).val();
+              if( jetpackFilter != '' ){
+                 document.location.href = 'admin.php?page=fcc-network-admin-ui'+jetpackFilter;
+              }
+              });
+          });
        </script>;
     <?php
 
