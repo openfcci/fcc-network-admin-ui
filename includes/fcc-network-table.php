@@ -62,67 +62,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
         $this->items = $sites;
 
-      }else if($_GET['jetpack-filter']){
-        //If Jetpack filter is selected
-        global $wpdb;
-        $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs");
-        print_r($sites);
-
-        $jpms = Jetpack_Network::init();
-        $jp = Jetpack::init();
-
-        //If Jetpack Filter is Jetpack Connected, disconnected, or email.
-        if($_GET['jetpack-filter'] == "jetpack-connected"){
-          foreach ($sites as $index=>$site){
-            switch_to_blog( $site->blog_id );
-            if( !$jp->is_active() ) {
-                unset($sites[$key]);
-                restore_current_blog();
-            }else{
-              restore_current_blog();
-            }
-          };
-        }else if($_GET['jetpack-filter'] == "jetpack-disconnected"){
-          foreach ($sites as $index=>$site){
-            switch_to_blog( $site->blog_id );
-            if( $jp->is_active() ) {
-                unset($sites[$key]);
-                restore_current_blog();
-            }else{
-              restore_current_blog();
-            }
-          };
-        }else if($_GET['jetpack-filter'] == "jetpack-incorrect"){
-          foreach ($sites as $index=>$site){
-            switch_to_blog( $site->blog_id );
-            if( Jetpack::get_connected_user_data( Jetpack_Options::get_option( 'master_user' )->ID )[email] != "fccd-support@forumcomm.com" ) {
-                unset($sites[$key]);
-                restore_current_blog();
-            }else{
-              restore_current_blog();
-            }
-          }
-        }
-
-        // Setup pagination
-        $per_page = 25;
-        $current_page = $this->get_pagenum();
-        $total_items = count( $sites );
-        $sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
-
-        $columns = $this->get_columns();
-        $hidden = array();
-        $sortable = $this->get_sortable_columns();
-
-        $this->set_pagination_args( array(
-          'total_items' => $total_items,
-          'per_page'    => $per_page
-        ) );
-
-        $this->_column_headers = array( $columns, $hidden, $sortable );
-        $this->items = $sites;
-
-      }else{
+      }else {
         global $wpdb;
         // Get sites
         //If last post column is sortable, sort the order, else dont
@@ -130,6 +70,45 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
           $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs ORDER BY last_updated " . $_GET['order']);
         }else{
           $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs");
+        }
+
+        //If Jetpack Filter is Jetpack Connected, disconnected, or email.
+        if($_GET['jetpack-filter'] == "jetpack-connected"){
+          $jpms = Jetpack_Network::init();
+          $jp = Jetpack::init();
+          foreach ($sites as $index=>$site){
+            switch_to_blog( $site->blog_id );
+            if( !$jp->is_active() ) {
+                unset($sites[$index]);
+                restore_current_blog();
+            }else{
+              restore_current_blog();
+            }
+          };
+        }else if($_GET['jetpack-filter'] == "jetpack-disconnected"){
+          $jpms = Jetpack_Network::init();
+          $jp = Jetpack::init();
+          foreach ($sites as $index=>$site){
+            switch_to_blog( $site->blog_id );
+            if( $jp->is_active() ) {
+                unset($sites[$index]);
+                restore_current_blog();
+            }else{
+              restore_current_blog();
+            }
+          };
+        }else if($_GET['jetpack-filter'] == "jetpack-incorrect"){
+          $jpms = Jetpack_Network::init();
+          $jp = Jetpack::init();
+          foreach ($sites as $index=>$site){
+            switch_to_blog( $site->blog_id );
+            if( Jetpack::get_connected_user_data( Jetpack_Options::get_option( 'master_user' )->ID )[email] != "fccd-support@forumcomm.com" ) {
+                unset($sites[$index]);
+                restore_current_blog();
+            }else{
+              restore_current_blog();
+            }
+          }
         }
 
     		// Setup pagination
@@ -297,6 +276,20 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
               ?>
                   <!-- Jetpack Filter -->
                   <select name="jetpack-filter" class="fcc-filter-jetpack">
+                    <?php
+                        //Add options specifying what option is selected
+                        if($_GET['jetpack-filter'] == 'jetpack-all'){
+                          echo "<option>Jetpack: Show All</option>";
+                        }else if($_GET['jetpack-filter'] == 'jetpack-connected'){
+                          echo "<option>Jetpack: Connected</option>";
+                        }else if($_GET['jetpack-filter'] == 'jetpack-disconnected'){
+                          echo "<option>Jetpack: Disconnected</option>";
+                        }else if($_GET['jetpack-filter'] == 'jetpack-incorrect'){
+                          echo "<option>Incorrect Jetpack Master User</option>";
+                        }else{
+                          echo "<option>Jetpack: Show All</option>";
+                        };
+                      ?>
 
                         <option value="&jetpack-filter=jetpack-all">Jetpack: Show All</option>
                         <option value="&jetpack-filter=jetpack-connected">Jetpack Connected</option>
