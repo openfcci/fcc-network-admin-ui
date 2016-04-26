@@ -4,7 +4,7 @@ Plugin Name: fcc-network-admin-ui
 Plugin URI: https://github.com/openfcci/fcc-network-admin-ui
 Description: A series of modules that adds or extends the functionality, tools and UI of the admin dashboard.
 Author: Forum Communications Company
-Version: 0.16.04.06
+Version: 0.16.04.25 v2
 Author URI: http://forumcomm.com/
 */
 
@@ -71,8 +71,141 @@ function fcc_network_sites_page(){
 			 $myListTable->display();
 			 echo '</form></div>';
 
+			 echo'<div class="wrap"><div class=""><div class="inside">';
+			 sites_json_create_form();
+			 echo '</div></div></div>';
+
 		 }else{
 			 echo '<p>Jetpack must be installed and activated to use this plugin.';
 		 }
    }
+}
+
+/*--------------------------------------------------------------
+# JSON FEED
+--------------------------------------------------------------*/
+
+/**
+ * Add 'sites' JSON Feed
+ *
+ * @since 1.16.04.24
+ * @version 1.16.04.24
+ */
+function fcc_sites_do_json_feed(){
+	add_feed('sites', 'add_sites_feed');
+}
+add_action('init', 'fcc_sites_do_json_feed');
+
+/**
+ * Load JSON Feed Template
+ *
+ * @since 1.16.04.24
+ * @version 1.16.04.24
+ */
+function add_sites_feed(){
+	load_template( plugin_dir_path( __FILE__ ) . 'template/feed-json.php' );
+}
+
+
+/*************************** FORM: Update Sites JSON **************************
+*******************************************************************************
+* Create form function.
+*/
+
+function sites_json_create_form(){
+
+?>
+<div class="wrap">
+<?php
+	switch ( $_GET['action'] ) {
+		//---------------------------------------------------//
+			default:
+?>
+		<div class="wrap">
+			<form method="post" action="<?php echo network_admin_url(); ?>admin.php?page=fcc-network-admin-ui&action=sitesjson">
+				<p class="submit">
+					<input type="submit" class="button-primary" name="Submit" value="<?php _e( 'Refresh Sites JSON Feed' ) ?>" />
+				</p>
+			</form>
+		</div>
+
+		<?php
+			break;
+		//---------------------------------------------------//
+			case "sitesjson":
+				cache_site_json();
+				echo 'Sites JSON Feed Updated';
+				break;
+	}
+?>
+</div>
+<?php
+}
+
+
+function cache_site_json() {
+	/*** Refresh the Cache ***/
+	global $wpdb;
+	$json = array();
+
+		$blogs = $wpdb->get_col("SELECT blog_id FROM $wpdb->blogs");
+		if (!empty($blogs)) {
+		    foreach ($blogs as $blog) {
+		        switch_to_blog($blog);
+		        //////////////////////
+
+		        $blog_detail = get_blog_details( $blog, 1 );
+						$admin_email = get_option('admin_email');
+		        $blogusers = get_users( array( 'blog_id' => $blog ) );
+		        $user_count = count_users();
+
+						if (!empty($blogusers)) {
+					    foreach ($blogusers as $user) {
+							if ($user->roles[0] == 'site-owner' && $user->data->user_email == $admin_email ) {
+								$primary_user_role = 'Site Owner';
+								$primary_user = $user->data->user_email;
+								$primary_user_id = $user->ID;
+								break;
+
+							} elseif ($user->roles[0] == 'administrator' && $user->data->user_email == $admin_email ) {
+								$primary_user_role = 'Administrator';
+								$primary_user = $user->data->user_email;
+								$primary_user_id = $user->ID;
+								break;
+							}
+							else {
+								$primary_user_role = 'no match';
+								$primary_user = 'no match';
+								$primary_user_id = 'no match';
+							}
+						}
+					}
+
+					if ( get_site_option( 'sites-roles' ) ) {
+						$roles = $user_count[avail_roles];
+					} else {
+						$roles = '';
+					}
+
+						$site = array(
+							'id'							=> $blog,
+							'name'						=> $blog_detail->blogname,
+							'url'							=> $blog_detail->siteurl,
+							'theme'						=> wp_get_theme()->get( 'Name' ),
+							'registered'			=> date('Y-m-d', strtotime($blog_detail->registered)),
+							'last-post-date'	=> date('Y-m-d', strtotime(get_lastpostdate())),
+							'total_users'			=> $user_count[total_users],
+							'roles' 					=> $roles,
+							'admin_email'			=> $admin_email,
+							'primary-user-email'			=> $primary_user,
+							'primary-user-role'			=> $primary_user_role,
+							);
+
+		        //////////////////////
+		        restore_current_blog();
+						$json[] = $site;
+		    }
+		}
+
+		update_site_option( 'sites-json', $json );
 }
