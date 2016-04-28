@@ -62,7 +62,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
         $this->items = $sites;
 
-      }else{
+      }else {
         global $wpdb;
         // Get sites
         //If last post column is sortable, sort the order, else dont
@@ -70,6 +70,54 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
           $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs ORDER BY last_updated " . $_GET['order']);
         }else{
           $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs");
+        }
+
+        //If Jetpack Filter is Jetpack Connected, disconnected, or email.
+        if($_GET['jetpack-filter'] == "jetpack-connected"){
+          $jpms = Jetpack_Network::init();
+          $jp = Jetpack::init();
+          foreach ($sites as $index=>$site){
+            switch_to_blog( $site->blog_id );
+            if( !$jp->is_active() ) {
+                unset($sites[$index]);
+                restore_current_blog();
+            }else{
+              restore_current_blog();
+            }
+          };
+        }else if($_GET['jetpack-filter'] == "jetpack-disconnected"){
+          $jpms = Jetpack_Network::init();
+          $jp = Jetpack::init();
+          foreach ($sites as $index=>$site){
+            switch_to_blog( $site->blog_id );
+            if( $jp->is_active() ) {
+                unset($sites[$index]);
+                restore_current_blog();
+            }else{
+              restore_current_blog();
+            }
+          };
+        } else if( $_GET['jetpack-filter'] == "jetpack-incorrect" ) {
+          $jpms = Jetpack_Network::init();
+          $jp = Jetpack::init();
+          foreach ( $sites as $index => $site ) {
+            switch_to_blog( $site->blog_id );
+
+            /* Jetpack: Get Master User Data for Current Blog */
+            $master = Jetpack_Options::get_option( 'master_user' );
+            if ( ! get_user_by( 'id', $master ) ) {
+              unset($sites[$index]);
+            } else {
+              $master_user = get_userdata( $master );
+              $master_user_data_com = Jetpack::get_connected_user_data( $master_user->ID );
+              $jp_connected_email = $master_user_data_com['email'];
+              if( $jp_connected_email == "fccd-support@forumcomm.com" ) {
+                  unset($sites[$index]);
+              }
+            }
+
+            restore_current_blog();
+          }
         }
 
     		// Setup pagination
@@ -186,55 +234,78 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
     function extra_tablenav( $which ) {
         global $wpdb, $testiURL, $tablename, $tablet;
-        $move_on_url = '&date-filter=';
+        $date_url = '&date-filter=';
         if ( $which == "top" ){
             ?>
             <div class="alignleft actions bulkactions">
-            <?php
-            $sites = $wpdb->get_results('select * from av_blogs order by last_updated desc', ARRAY_A);
-            if( $sites ){
-                ?>
-                <select name="date-filter" class="fcc-filter-date">
-                  <?php
-                    //If has date-filter variable in url, then filter by date, else show all sites.
-                    if( $_GET['date-filter']){
-                      ?>
-                      <option value=""><?php echo 'Last Posts: ' . $_GET['date-filter']; ?></option>
-                    <?php }else{
-                      ?>
-                      <option value="">Filter by Last Post Date</option>
+
+              <?php
+              $sites = $wpdb->get_results('select * from av_blogs order by last_updated desc', ARRAY_A);
+              if( $sites ){
+                  ?>
+                  <select name="date-filter" class="fcc-filter-date">
                     <?php
-                     }
-                      //New Date array
-                      $date_array = array();
-                      foreach( $sites as $site ){
-                        //If blog is not null
-                        if($site['last_updated'] != '0000-00-00 00:00:00'){
-                          //Get date by Month Year
-                          $last_date = date('F Y', strtotime($site['last_updated']));
-                          //Add date object to date_array if it does not exist
-                          if(!in_array($last_date, $date_array)){
-                            array_push($date_array, $last_date);
+                      //If has date-filter variable in url, then filter by date, else show all sites.
+                      if( $_GET['date-filter']){
+                        ?>
+                        <option value=""><?php echo 'Last Posts: ' . $_GET['date-filter']; ?></option>
+                      <?php }else{
+                        ?>
+                        <option value="">Filter by Last Post Date</option>
+                      <?php
+                       }
+                        //New Date array
+                        $date_array = array();
+                        foreach( $sites as $site ){
+                          //If blog is not null
+                          if($site['last_updated'] != '0000-00-00 00:00:00'){
+                            //Get date by Month Year
+                            $last_date = date('F Y', strtotime($site['last_updated']));
+                            //Add date object to date_array if it does not exist
+                            if(!in_array($last_date, $date_array)){
+                              array_push($date_array, $last_date);
+                            }
                           }
                         }
-                      }
 
-                      foreach($date_array as $thedate){
-                        if($thedate){
-                          $last_post = $thedate;
-                        }
+                        foreach($date_array as $thedate){
+                          if($thedate){
+                            $last_post = $thedate;
+                          }
 
-                    ?>
-                        <option value="<?php echo $move_on_url . $last_post; ?>" <?php echo $selected; ?>><?php echo $last_post; ?></option>
+                      ?>
+                          <option value="<?php echo $date_url . $last_post; ?>" <?php echo $selected; ?>><?php echo $last_post; ?></option>
+                      <?php
+
+                          }
+                      ?>
+                  </select>
+                  <?php
+              }
+              ?>
+                  <!-- Jetpack Filter -->
+                  <select name="jetpack-filter" class="fcc-filter-jetpack">
                     <?php
+                        //Add options specifying what option is selected
+                        if($_GET['jetpack-filter'] == 'jetpack-all'){
+                          echo "<option>Jetpack: Show All</option>";
+                        }else if($_GET['jetpack-filter'] == 'jetpack-connected'){
+                          echo "<option>Jetpack: Connected</option>";
+                        }else if($_GET['jetpack-filter'] == 'jetpack-disconnected'){
+                          echo "<option>Jetpack: Disconnected</option>";
+                        }else if($_GET['jetpack-filter'] == 'jetpack-incorrect'){
+                          echo "<option>Incorrect Jetpack Master User</option>";
+                        }else{
+                          echo "<option>Jetpack: Show All</option>";
+                        };
+                      ?>
 
-                        }
-                    ?>
-                </select>
-                <?php
-            }
-            ?>
-            </div>
+                        <option value="&jetpack-filter=jetpack-all">Jetpack: Show All</option>
+                        <option value="&jetpack-filter=jetpack-connected">Jetpack Connected</option>
+                        <option value="&jetpack-filter=jetpack-disconnected">Jetpack Disconnected</option>
+                        <option value="&jetpack-filter=jetpack-incorrect">Incorrect Jetpack Master User</option>
+                  </select>
+              </div>
             <?php
         }
         if ( $which == "bottom" ){
@@ -250,13 +321,22 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
     ?>
     <script>
     jQuery(document).ready(function($) {
+          //Filter Date
           $('.fcc-filter-date').on('change', function(){
              var dateFilter = $(this).val();
              if( dateFilter != '' ){
                 document.location.href = 'admin.php?page=fcc-network-admin-ui'+dateFilter;
              }
              });
-           });
+
+           //Filter Jetpack
+           $('.fcc-filter-jetpack').on('change', function(){
+              var jetpackFilter = $(this).val();
+              if( jetpackFilter != '' ){
+                 document.location.href = 'admin.php?page=fcc-network-admin-ui'+jetpackFilter;
+              }
+              });
+          });
        </script>;
     <?php
 
