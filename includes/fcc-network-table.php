@@ -46,7 +46,8 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
         }else{
           $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE YEAR(last_updated) = " . date('Y', $date) . " AND MONTH(last_updated) = " . date('m', $date) );
         }
-        $per_page = 25;
+        //Get items per page option
+        $per_page = $this->get_items_per_page('sites_per_page', 250);
         $current_page = $this->get_pagenum();
         $total_items = count( $sites );
         $sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
@@ -58,7 +59,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
         $columns = $this->get_columns();
         $sortable = $this->get_sortable_columns();
         $hidden = array();
-        $this->_column_headers = array( $columns, $hidden, $sortable );
+        $this->_column_headers = $this->get_column_info();
 
         $this->items = $sites;
 
@@ -121,7 +122,8 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
         }
 
     		// Setup pagination
-    		$per_page = 25;
+        //Get items per page option
+    		$per_page = $this->get_items_per_page('sites_per_page', 250);
     		$current_page = $this->get_pagenum();
     		$total_items = count( $sites );
     		$sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
@@ -135,7 +137,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
     			'per_page'    => $per_page
     		) );
 
-    		$this->_column_headers = array( $columns, $hidden, $sortable );
+    		$this->_column_headers = $this->get_column_info();
     		$this->items = $sites;
       }
 
