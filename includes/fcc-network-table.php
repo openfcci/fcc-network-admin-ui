@@ -22,7 +22,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
     public function get_sortable_columns(){
       $sortable_columns = array(
         'lastpost' => array(
-          'lastpost', false
+          'lastpost', true
         )
   		);
 
