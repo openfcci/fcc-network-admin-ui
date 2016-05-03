@@ -7,6 +7,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
 
 
   	public function get_columns() {
+
   		// site name, status, username connected under
   		$columns = array(
   			'blogname' => __( 'Site Name'  ),
@@ -35,6 +36,7 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
   		// Deal with bulk actions if any were requested by the user
   		$this->process_bulk_action();
 
+
       //If has date-filter variable in url, then filter by date, else show all sites.
       if( $_GET['date-filter']){
 
@@ -46,22 +48,30 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
         }else{
           $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE YEAR(last_updated) = " . date('Y', $date) . " AND MONTH(last_updated) = " . date('m', $date) );
         }
-        //Get items per page option
-        $per_page = $this->get_items_per_page('sites_per_page', 250);
-        $current_page = $this->get_pagenum();
-        $total_items = count( $sites );
-        $sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
-        $this->set_pagination_args( array(
-          'total_items' => $total_items,
-          'per_page'    => $per_page
-        ) );
 
-        $columns = $this->get_columns();
-        $sortable = $this->get_sortable_columns();
-        $hidden = array();
-        $this->_column_headers = $this->get_column_info();
+      }else if( $_GET['activity-filter-active']){
+        global $wpdb;
 
-        $this->items = $sites;
+        //Get the amount of days to filter
+        $days = $_GET['activity-filter-active'];
+
+        if($_GET['orderby'] == 'lastpost' && $_GET['order']){
+          $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE last_updated BETWEEN DATE_SUB(NOW(), INTERVAL ". $days . " DAY) AND NOW() ORDER BY last_updated " . $_GET['order']);
+        }else{
+          $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE last_updated BETWEEN DATE_SUB(NOW(), INTERVAL ". $days . " DAY) AND NOW() ORDER BY last_updated desc");
+        }
+
+      }else if( $_GET['activity-filter-inactive']){
+        global $wpdb;
+
+        //Get the amount of days to filter before
+        $days = $_GET['activity-filter-inactive'];
+
+        if($_GET['orderby'] == 'lastpost' && $_GET['order']){
+          $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE DATE(last_updated) <= DATE_SUB(curdate(), INTERVAL $days DAY) ORDER BY last_updated " . $_GET['order']);
+        }else{
+          $sites =  $wpdb->get_results( "SELECT * FROM $wpdb->blogs WHERE DATE(last_updated) <= DATE_SUB(curdate(), INTERVAL $days DAY) ORDER BY last_updated desc");
+        }
 
       }else {
         global $wpdb;
@@ -120,26 +130,24 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
             restore_current_blog();
           }
         }
-
-    		// Setup pagination
-        //Get items per page option
-    		$per_page = $this->get_items_per_page('sites_per_page', 250);
-    		$current_page = $this->get_pagenum();
-    		$total_items = count( $sites );
-    		$sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
-
-        $columns = $this->get_columns();
-        $hidden = array();
-        $sortable = $this->get_sortable_columns();
-
-    		$this->set_pagination_args( array(
-    			'total_items' => $total_items,
-    			'per_page'    => $per_page
-    		) );
-
-    		$this->_column_headers = $this->get_column_info();
-    		$this->items = $sites;
       }
+
+      //Get items per page option
+      $per_page = $this->get_items_per_page('sites_per_page', 250);
+      $current_page = $this->get_pagenum();
+      $total_items = count( $sites );
+      $sites = array_slice( $sites, ( ( $current_page-1 ) * $per_page ), $per_page );
+      $this->set_pagination_args( array(
+        'total_items' => $total_items,
+        'per_page'    => $per_page
+      ) );
+
+      $columns = $this->get_columns();
+      $sortable = $this->get_sortable_columns();
+      $hidden = array();
+      $this->_column_headers = $this->get_column_info();
+
+      $this->items = $sites;
 
 
   	}
@@ -307,7 +315,46 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
                         <option value="&jetpack-filter=jetpack-disconnected">Jetpack Disconnected</option>
                         <option value="&jetpack-filter=jetpack-incorrect">Incorrect Jetpack Master User</option>
                   </select>
-              </div>
+
+                <!-- Jetpack Filter -->
+                <select name="activity-filter" class="fcc-filter-activity">
+                  <?php
+                      //Add options specifying what option is selected
+                      if($_GET['activity-filter-all'] == 'activity-all'){
+                        echo "<option>All Activity</option>";
+                      }else if($_GET['activity-filter-active'] == '30'){
+                        echo "<option>Active: Last 30 days</option>";
+                      }else if($_GET['activity-filter-active'] == '60'){
+                        echo "<option>Active: Last 60 days</option>";
+                      }else if($_GET['activity-filter-active'] == '90'){
+                        echo "<option>Active: Last 90 days</option>";
+                      }else if($_GET['activity-filter-inactive'] == '30'){
+                        echo "<option>Inactive: 30 days</option>";
+                      }else if($_GET['activity-filter-inactive'] == '60'){
+                        echo "<option>Inactive: 60 days</option>";
+                      }else if($_GET['activity-filter-inactive'] == '90'){
+                        echo "<option>Inactive: 90 days</option>";
+                      }else if($_GET['activity-filter-inactive'] == '180'){
+                        echo "<option>Inactive: 6 months</option>";
+                      }else if($_GET['activity-filter-inactive'] == '365'){
+                        echo "<option>Inactive: 1 year</option>";
+                      }else if($_GET['activity-filter-inactive'] == '730'){
+                        echo "<option>Inactive: 2 years</option>";
+                      }
+                    ?>
+
+                      <option value="&activity-filter-all=activity-all">All Activity</option>
+                      <option value="&activity-filter-active=30">Active: Last 30 days</option>
+                      <option value="&activity-filter-active=60">Active: Last 60 days</option>
+                      <option value="&activity-filter-active=90">Active: Last 90 days</option>
+                      <option value="&activity-filter-inactive=30">Inactive: 30 days</option>
+                      <option value="&activity-filter-inactive=60">Inactive: 60 days</option>
+                      <option value="&activity-filter-inactive=90">Inactive: 90 days</option>
+                      <option value="&activity-filter-inactive=180">Inactive: 6 months</option>
+                      <option value="&activity-filter-inactive=365">Inactive: 1 year</option>
+                      <option value="&activity-filter-inactive=730">Inactive: 2 years</option>
+                </select>
+            </div>
             <?php
         }
         if ( $which == "bottom" ){
@@ -338,6 +385,15 @@ class FCC_Network_Sites_List_Table extends WP_List_Table {
                  document.location.href = 'admin.php?page=fcc-network-admin-ui'+jetpackFilter;
               }
               });
+
+            //Filter Activity
+            $('.fcc-filter-activity').on('change', function(){
+               var activityFilter = $(this).val();
+               if( activityFilter != '' ){
+                  document.location.href = 'admin.php?page=fcc-network-admin-ui'+activityFilter;
+               }
+               });
+
           });
        </script>;
     <?php
