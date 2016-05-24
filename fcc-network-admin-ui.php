@@ -1,10 +1,10 @@
 <?php
 /*
-Plugin Name: fcc-network-admin-ui
+Plugin Name: FCC Network Admin UI
 Plugin URI: https://github.com/openfcci/fcc-network-admin-ui
 Description: A series of modules that adds or extends the functionality, tools and UI of the admin dashboard.
 Author: Forum Communications Company
-Version: 0.16.04.25 v2
+Version: 0.16.05.24
 Author URI: http://forumcomm.com/
 */
 
@@ -67,7 +67,7 @@ function site_table_load_hook() {
 		$option = 'per_page';
 		$args = array(
 				'label' => 'Number of items per page:',
-				'default' => 250,
+				'default' => 50,
 				'option' => 'sites_per_page'
 		);
 		add_screen_option( $option, $args );
