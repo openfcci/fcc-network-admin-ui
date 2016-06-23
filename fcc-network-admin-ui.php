@@ -4,7 +4,7 @@ Plugin Name: FCC Network Admin UI
 Plugin URI: https://github.com/openfcci/fcc-network-admin-ui
 Description: A series of modules that adds or extends the functionality, tools and UI of the admin dashboard.
 Author: Forum Communications Company
-Version: 0.16.05.24
+Version: 0.16.06.23
 Author URI: http://forumcomm.com/
 */
 
@@ -62,6 +62,7 @@ function fcc_create_network_sites_menu(){
 function site_table_load_hook() {
 	global $fcc_network_table;
 	if ( get_current_screen() ) {
+
 
 		//Add Pagination option
 		$option = 'per_page';
@@ -182,64 +183,68 @@ function cache_site_json() {
 	global $wpdb;
 	$json = array();
 
-		$blogs = $wpdb->get_col("SELECT blog_id FROM $wpdb->blogs");
-		if (!empty($blogs)) {
-		    foreach ($blogs as $blog) {
-		        switch_to_blog($blog);
-		        //////////////////////
+	$blogs = $wpdb->get_col( "SELECT blog_id FROM $wpdb->blogs" );
+	if ( ! empty( $blogs ) ) {
+		foreach ( $blogs as $blog ) {
+			switch_to_blog( $blog );
+			/***************************/
 
-		        $blog_detail = get_blog_details( $blog, 1 );
-						$admin_email = get_option('admin_email');
-		        $blogusers = get_users( array( 'blog_id' => $blog ) );
-		        $user_count = count_users();
+			$blog_detail = get_blog_details( $blog, 1 );
+			$admin_email = get_option( 'admin_email' );
+			$blogusers = get_users( array( 'blog_id' => $blog ) );
+			$user_count = count_users();
 
-						if (!empty($blogusers)) {
-					    foreach ($blogusers as $user) {
-							if ($user->roles[0] == 'site-owner' && $user->data->user_email == $admin_email ) {
-								$primary_user_role = 'Site Owner';
-								$primary_user = $user->data->user_email;
-								$primary_user_id = $user->ID;
-								break;
-
-							} elseif ($user->roles[0] == 'administrator' && $user->data->user_email == $admin_email ) {
-								$primary_user_role = 'Administrator';
-								$primary_user = $user->data->user_email;
-								$primary_user_id = $user->ID;
-								break;
-							}
-							else {
-								$primary_user_role = 'no match';
-								$primary_user = 'no match';
-								$primary_user_id = 'no match';
-							}
-						}
-					}
-
-					if ( get_site_option( 'sites-roles' ) ) {
-						$roles = $user_count[avail_roles];
+			if ( ! empty( $blogusers ) ) {
+				foreach ( $blogusers as $user ) {
+					if ( $user->roles[0] == 'site-owner' && $user->data->user_email == $admin_email ) {
+						$primary_user_role = 'Site Owner';
+						$primary_user = $user->data->user_email;
+						$primary_user_id = $user->ID;
+						break;
+					} elseif ( $user->roles[0] == 'administrator' && $user->data->user_email == $admin_email ) {
+						$primary_user_role = 'Administrator';
+						$primary_user = $user->data->user_email;
+						$primary_user_id = $user->ID;
+						break;
 					} else {
-						$roles = '';
+						$primary_user_role = 'no match';
+						$primary_user = 'no match';
+						$primary_user_id = 'no match';
 					}
+				}
+			}
 
-						$site = array(
-							'id'							=> $blog,
-							'name'						=> $blog_detail->blogname,
-							'url'							=> $blog_detail->siteurl,
-							'theme'						=> wp_get_theme()->get( 'Name' ),
-							'registered'			=> date('Y-m-d', strtotime($blog_detail->registered)),
-							'last-post-date'	=> date('Y-m-d', strtotime(get_lastpostdate())),
-							'total_users'			=> $user_count[total_users],
-							'roles' 					=> $roles,
-							'admin_email'			=> $admin_email,
-							'primary-user-email'			=> $primary_user,
-							'primary-user-role'			=> $primary_user_role,
-							);
+			if ( get_site_option( 'sites-roles' ) ) {
+				$roles = $user_count[ avail_roles ];
+			} else {
+				$roles = '';
+			}
 
-		        //////////////////////
-		        restore_current_blog();
-						$json[] = $site;
-		    }
+			$site = array(
+				'id'											=> $blog,
+				'name'										=> $blog_detail->blogname,
+				'url'											=> $blog_detail->siteurl,
+				'theme'										=> wp_get_theme()->get( 'Name' ),
+				'registered'							=> date( 'Y-m-d', strtotime( $blog_detail->registered ) ),
+				'last-post-date'					=> date( 'Y-m-d', strtotime( get_lastpostdate() ) ),
+				'total_users'							=> $user_count[ total_users ],
+				'roles' 									=> $roles,
+				'admin_email'							=> $admin_email,
+				'primary-user-email'			=> $primary_user,
+				'primary-user-role'				=> $primary_user_role,
+				'primary-user-first-name'	=> get_userdata($primary_user_id)->first_name,
+				'primary-user-last-name'	=> get_userdata($primary_user_id)->last_name,
+				'public'									=> get_blog_status( $blog, 'public' ),
+				'archived'								=> get_blog_status( $blog, 'archived' ),
+				'mature'									=> get_blog_status( $blog, 'mature' ),
+				'spam'										=> get_blog_status( $blog, 'spam' ),
+				'deleted'									=> get_blog_status( $blog, 'deleted' ),
+				);
+
+			/***************************/
+			restore_current_blog();
+			$json[] = $site;
 		}
-
-		update_site_option( 'sites-json', $json );
+	}
+	update_site_option( 'sites-json', $json );
 }
