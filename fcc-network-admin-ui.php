@@ -196,12 +196,12 @@ function cache_site_json() {
 
 			if ( ! empty( $blogusers ) ) {
 				foreach ( $blogusers as $user ) {
-					if ( $user->roles[0] == 'site-owner' && $user->data->user_email == $admin_email ) {
+					if ( 'site-owner' == $user->roles[0] && $admin_email == $user->data->user_email ) {
 						$primary_user_role = 'Site Owner';
 						$primary_user = $user->data->user_email;
 						$primary_user_id = $user->ID;
 						break;
-					} elseif ( $user->roles[0] == 'administrator' && $user->data->user_email == $admin_email ) {
+					} elseif ( 'administrator' == $user->roles[0] && $admin_email == $user->data->user_email ) {
 						$primary_user_role = 'Administrator';
 						$primary_user = $user->data->user_email;
 						$primary_user_id = $user->ID;
@@ -212,6 +212,14 @@ function cache_site_json() {
 						$primary_user_id = 'no match';
 					}
 				}
+			}
+
+			if ( 'no match' == $primary_user_id || null == $primary_user_id ) {
+				$first_name = 'Site';
+				$last_name = 'Owner';
+			} else {
+				$first_name = get_userdata( $primary_user_id )->first_name;
+				$last_name = get_userdata( $primary_user_id )->last_name;
 			}
 
 			if ( get_site_option( 'sites-roles' ) ) {
@@ -232,8 +240,8 @@ function cache_site_json() {
 				'admin_email'							=> $admin_email,
 				'primary-user-email'			=> $primary_user,
 				'primary-user-role'				=> $primary_user_role,
-				'primary-user-first-name'	=> get_userdata($primary_user_id)->first_name,
-				'primary-user-last-name'	=> get_userdata($primary_user_id)->last_name,
+				'first_name'							=> $first_name,
+				'last_name'								=> $last_name,
 				'public'									=> get_blog_status( $blog, 'public' ),
 				'archived'								=> get_blog_status( $blog, 'archived' ),
 				'mature'									=> get_blog_status( $blog, 'mature' ),
